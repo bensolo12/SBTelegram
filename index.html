@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solomons-Borenstein Telegraph System</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: system-ui, sans-serif;
+      background: #f4f6f8;
+      color: #17212b;
+    }
+
+    body {
+      box-sizing: border-box;
+      max-width: 64rem;
+      margin: 0 auto;
+      padding: 3rem 1.25rem;
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    #message-workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(14rem, 0.8fr);
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    #decoded-text {
+      min-height: 7rem;
+      padding: 1rem;
+      border: 1px solid #aeb8c2;
+      border-radius: 0.5rem;
+      background: white;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font: 1.5rem/1.5 ui-monospace, monospace;
+    }
+
+    #sent-messages {
+      display: grid;
+      gap: 0.5rem;
+      margin: 0.5rem 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    #sent-messages li {
+      min-height: 1.5rem;
+      padding: 0.75rem;
+      border: 1px solid #aeb8c2;
+      border-radius: 0.5rem;
+      background: white;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font: 1rem/1.5 ui-monospace, monospace;
+    }
+
+    #sent-messages .message-sender {
+      display: block;
+      margin-bottom: 0.25rem;
+      color: #435466;
+      font: 600 0.8rem/1.3 system-ui, sans-serif;
+    }
+
+    #sent-messages .message-content {
+      display: block;
+    }
+
+    #input-status {
+      min-height: 1.5em;
+      color: #435466;
+    }
+
+    #connection-controls {
+      margin: 1.5rem 0 2rem;
+      padding: 1rem;
+      border: 1px solid #d5dce2;
+      border-radius: 0.5rem;
+      background: white;
+    }
+
+    #connection-controls h2 {
+      margin-top: 0;
+    }
+
+    .connection-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: end;
+      gap: 0.5rem;
+    }
+
+    .connection-actions label {
+      display: grid;
+      gap: 0.25rem;
+    }
+
+    #room-code {
+      box-sizing: border-box;
+      width: min(100%, 20rem);
+      padding: 0.5rem;
+      font: inherit;
+    }
+
+    #connection-status {
+      min-height: 1.5em;
+      margin-bottom: 0;
+      color: #435466;
+    }
+
+    @media (max-width: 38rem) {
+      #message-workspace {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    button {
+      padding: 0.5rem 0.8rem;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    #key-reference {
+      margin-top: 2rem;
+    }
+
+    .key-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.5rem;
+      margin: 0.75rem 0 0;
+    }
+
+    .key-entry {
+      min-width: 0;
+      padding: 0.75rem;
+      border: 1px solid #d5dce2;
+      border-radius: 0.5rem;
+      background: white;
+    }
+
+    .key-entry dt {
+      font-weight: 600;
+    }
+
+    .key-entry dd {
+      margin: 0.25rem 0 0;
+      font-family: ui-monospace, monospace;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Solomons-Borenstein Telegraph System</h1>
+    <p>Use the arrow keys. Every three key presses produce one letter, number, punctuation mark, or space. Press → → ↑ before a letter to capitalize it. Press ↑ ↑ ↑ to send the current message.</p>
+
+    <section id="connection-controls" aria-labelledby="connection-heading">
+      <h2 id="connection-heading">Connect two clients</h2>
+      <p>Create a room in one browser and share its code with the other client.</p>
+      <div class="connection-actions">
+        <label for="room-code">Room code
+          <input id="room-code" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
+        </label>
+        <button id="create-room" type="button">Create room</button>
+        <button id="join-room" type="button">Join room</button>
+        <button id="disconnect" type="button" disabled>Disconnect</button>
+      </div>
+      <p id="connection-status" aria-live="polite">Not connected.</p>
+    </section>
+
+    <div id="message-workspace">
+      <section aria-labelledby="current-message-heading">
+        <h2 id="current-message-heading">Current message</h2>
+        <p id="input-status" aria-live="polite">Waiting for arrow keys.</p>
+        <div id="decoded-text" role="log" aria-label="Current message" aria-live="polite"></div>
+      </section>
+
+      <aside aria-labelledby="sent-messages-heading">
+        <h2 id="sent-messages-heading">Conversation</h2>
+        <ol id="sent-messages" aria-live="polite" aria-relevant="additions"></ol>
+      </aside>
+    </div>
+
+    <section id="key-reference" aria-labelledby="key-guide-heading">
+      <h2 id="key-guide-heading">Key guide</h2>
+      <h3>Letters</h3>
+      <dl class="key-grid">
+        <div class="key-entry"><dt>a</dt><dd>→ → →</dd></div>
+        <div class="key-entry"><dt>b</dt><dd>→ → ←</dd></div>
+        <div class="key-entry"><dt>c</dt><dd>→ ← →</dd></div>
+        <div class="key-entry"><dt>d</dt><dd>← → →</dd></div>
+        <div class="key-entry"><dt>e</dt><dd>← ← →</dd></div>
+        <div class="key-entry"><dt>f</dt><dd>← ← ←</dd></div>
+        <div class="key-entry"><dt>g</dt><dd>→ ← ←</dd></div>
+        <div class="key-entry"><dt>h</dt><dd>← → ←</dd></div>
+        <div class="key-entry"><dt>i</dt><dd>↑ ↓ ↑</dd></div>
+        <div class="key-entry"><dt>j</dt><dd>↓ ↑ ↓</dd></div>
+        <div class="key-entry"><dt>k</dt><dd>↑ ↑ ↓</dd></div>
+        <div class="key-entry"><dt>l</dt><dd>↓ ↓ ↑</dd></div>
+        <div class="key-entry"><dt>m</dt><dd>↑ ↓ ↓</dd></div>
+        <div class="key-entry"><dt>n</dt><dd>↓ ↑ ↑</dd></div>
+        <div class="key-entry"><dt>o</dt><dd>↑ ↑ →</dd></div>
+        <div class="key-entry"><dt>p</dt><dd>↓ ↓ →</dd></div>
+        <div class="key-entry"><dt>q</dt><dd>↑ ↓ ←</dd></div>
+        <div class="key-entry"><dt>r</dt><dd>↓ ↑ →</dd></div>
+        <div class="key-entry"><dt>s</dt><dd>↑ ← ↓</dd></div>
+        <div class="key-entry"><dt>t</dt><dd>↓ → ↑</dd></div>
+        <div class="key-entry"><dt>u</dt><dd>↑ ← ←</dd></div>
+        <div class="key-entry"><dt>v</dt><dd>← ↑ ↑</dd></div>
+        <div class="key-entry"><dt>w</dt><dd>↑ → →</dd></div>
+        <div class="key-entry"><dt>x</dt><dd>→ ↑ ↑</dd></div>
+        <div class="key-entry"><dt>y</dt><dd>↑ → ←</dd></div>
+        <div class="key-entry"><dt>z</dt><dd>← ↑ ↓</dd></div>
+      </dl>
+      <p>Press Shift before a letter to make that letter uppercase.</p>
+
+      <h3>Numbers</h3>
+      <dl class="key-grid">
+        <div class="key-entry"><dt>0</dt><dd>↑ ↑ ←</dd></div>
+        <div class="key-entry"><dt>1</dt><dd>↑ ↓ →</dd></div>
+        <div class="key-entry"><dt>2</dt><dd>↑ ← ↑</dd></div>
+        <div class="key-entry"><dt>3</dt><dd>↑ ← →</dd></div>
+        <div class="key-entry"><dt>4</dt><dd>↑ → ↑</dd></div>
+        <div class="key-entry"><dt>5</dt><dd>↑ → ↓</dd></div>
+        <div class="key-entry"><dt>6</dt><dd>↓ ↑ ←</dd></div>
+        <div class="key-entry"><dt>7</dt><dd>↓ ↓ ←</dd></div>
+        <div class="key-entry"><dt>8</dt><dd>↓ ← ↑</dd></div>
+        <div class="key-entry"><dt>9</dt><dd>↓ ← ↓</dd></div>
+      </dl>
+
+      <h3>Punctuation and space</h3>
+      <dl class="key-grid">
+        <div class="key-entry"><dt>.</dt><dd>↓ ← ←</dd></div>
+        <div class="key-entry"><dt>,</dt><dd>↓ ← →</dd></div>
+        <div class="key-entry"><dt>?</dt><dd>↓ → ↓</dd></div>
+        <div class="key-entry"><dt>!</dt><dd>↓ → ←</dd></div>
+        <div class="key-entry"><dt>'</dt><dd>↓ → →</dd></div>
+        <div class="key-entry"><dt>Space</dt><dd>↓ ↓ ↓</dd></div>
+      </dl>
+
+      <h3>Modifiers</h3>
+      <dl class="key-grid">
+        <div class="key-entry"><dt>Shift (next letter uppercase)</dt><dd>→ → ↑</dd></div>
+      </dl>
+    </section>
+
+  </main>
+
+  <script>
+    const characters = {
+      "right right right": "a",
+      "right right left": "b",
+      "right left right": "c",
+      "left right right": "d",
+      "left left right": "e",
+      "left left left": "f",
+      "right left left": "g",
+      "left right left": "h",
+      "up down up": "i",
+      "down up down": "j",
+      "up up down": "k",
+      "down down up": "l",
+      "up down down": "m",
+      "down up up": "n",
+      "up up right": "o",
+      "down down right": "p",
+      "up down left": "q",
+      "down up right": "r",
+      "up left down": "s",
+      "down right up": "t",
+      "up left left": "u",
+      "left up up": "v",
+      "up right right": "w",
+      "right up up": "x",
+      "up right left": "y",
+      "left up down": "z",
+      "up up left": "0",
+      "up down right": "1",
+      "up left up": "2",
+      "up left right": "3",
+      "up right up": "4",
+      "up right down": "5",
+      "down up left": "6",
+      "down down left": "7",
+      "down left up": "8",
+      "down left down": "9",
+      "down left left": ".",
+      "down left right": ",",
+      "down right down": "?",
+      "down right left": "!",
+      "down right right": "'",
+      "down down down": " "
+    };
+
+    const directions = {
+      ArrowUp: "up",
+      ArrowDown: "down",
+      ArrowLeft: "left",
+      ArrowRight: "right"
+    };
+    const sequence = [];
+    const decodedText = document.querySelector("#decoded-text");
+    const sentMessages = document.querySelector("#sent-messages");
+    const inputStatus = document.querySelector("#input-status");
+    const roomCodeInput = document.querySelector("#room-code");
+    const createRoomButton = document.querySelector("#create-room");
+    const joinRoomButton = document.querySelector("#join-room");
+    const disconnectButton = document.querySelector("#disconnect");
+    const connectionStatus = document.querySelector("#connection-status");
+    let shiftNextCharacter = false;
+    let signalSocket = null;
+    let peerConnection = null;
+    let dataChannel = null;
+    let activeRoom = null;
+    let pendingIceCandidates = [];
+    let lastSignalError = "";
+
+    function setConnectionControls(connected) {
+      roomCodeInput.disabled = connected;
+      createRoomButton.disabled = connected;
+      joinRoomButton.disabled = connected;
+      disconnectButton.disabled = !connected;
+    }
+
+    function appendConversationMessage(sender, text) {
+      const item = document.createElement("li");
+      const senderLabel = document.createElement("span");
+      senderLabel.className = "message-sender";
+      senderLabel.textContent = sender;
+      const messageContent = document.createElement("span");
+      messageContent.className = "message-content";
+      messageContent.textContent = text;
+      item.append(senderLabel, messageContent);
+      sentMessages.append(item);
+    }
+
+    function sendSignal(message) {
+      if (!signalSocket || signalSocket.readyState !== WebSocket.OPEN) {
+        throw new Error("The signaling connection is not open.");
+      }
+      signalSocket.send(JSON.stringify(message));
+    }
+
+    function setupDataChannel(channel) {
+      dataChannel = channel;
+      channel.addEventListener("open", () => {
+        if (dataChannel === channel) {
+          connectionStatus.textContent = `Connected to room ${activeRoom}.`;
+        }
+      });
+      channel.addEventListener("close", () => {
+        if (dataChannel === channel) {
+          connectionStatus.textContent = "Peer connection closed.";
+        }
+      });
+      channel.addEventListener("error", () => {
+        if (dataChannel === channel) {
+          connectionStatus.textContent = "The peer-to-peer message channel encountered an error.";
+        }
+      });
+      channel.addEventListener("message", (event) => {
+        if (typeof event.data !== "string") {
+          connectionStatus.textContent = "Received an unsupported message.";
+          return;
+        }
+        appendConversationMessage("Peer", event.data);
+      });
+    }
+
+    function closePeerConnection() {
+      const oldChannel = dataChannel;
+      const oldConnection = peerConnection;
+      dataChannel = null;
+      peerConnection = null;
+      pendingIceCandidates = [];
+      if (oldChannel) {
+        oldChannel.close();
+      }
+      if (oldConnection) {
+        oldConnection.close();
+      }
+    }
+
+    function createPeerConnection(initiator) {
+      closePeerConnection();
+      const connection = new RTCPeerConnection({
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+      });
+      peerConnection = connection;
+      connection.addEventListener("icecandidate", (event) => {
+        if (!event.candidate || peerConnection !== connection) {
+          return;
+        }
+        try {
+          sendSignal({
+            type: "signal",
+            data: { kind: "candidate", candidate: event.candidate.toJSON() }
+          });
+        } catch (error) {
+          connectionStatus.textContent = `Could not send connection details: ${error.message}`;
+        }
+      });
+      connection.addEventListener("connectionstatechange", () => {
+        if (peerConnection !== connection) {
+          return;
+        }
+        if (connection.connectionState === "failed") {
+          connectionStatus.textContent = "Peer connection failed. This network may require a TURN relay.";
+        } else if (connection.connectionState === "disconnected") {
+          connectionStatus.textContent = "Peer connection interrupted.";
+        }
+      });
+
+      if (initiator) {
+        setupDataChannel(connection.createDataChannel("messages"));
+      } else {
+        connection.addEventListener("datachannel", (event) => {
+          setupDataChannel(event.channel);
+        });
+      }
+      return connection;
+    }
+
+    async function applyPendingIceCandidates(connection) {
+      const candidates = pendingIceCandidates;
+      pendingIceCandidates = [];
+      for (const candidate of candidates) {
+        await connection.addIceCandidate(candidate);
+      }
+    }
+
+    async function handleSignalMessage(message, socket) {
+      if (socket !== signalSocket) {
+        return;
+      }
+      if (!message || typeof message.type !== "string") {
+        throw new Error("The signaling server sent an invalid message.");
+      }
+      if (message.type === "error") {
+        lastSignalError = message.message || "The signaling server rejected the connection.";
+        connectionStatus.textContent = lastSignalError;
+        socket.close();
+        return;
+      }
+      if (message.type === "joined") {
+        if (typeof message.room !== "string" || typeof message.initiator !== "boolean") {
+          throw new Error("The signaling server sent invalid room details.");
+        }
+        activeRoom = message.room;
+        createPeerConnection(message.initiator);
+        connectionStatus.textContent = message.initiator
+          ? `Room ${activeRoom} is ready. Waiting for the other client.`
+          : `Joined room ${activeRoom}. Connecting to the other client.`;
+        return;
+      }
+      if (message.type === "peer-joined") {
+        const connection = peerConnection || createPeerConnection(true);
+        const offer = await connection.createOffer();
+        await connection.setLocalDescription(offer);
+        sendSignal({
+          type: "signal",
+          data: {
+            kind: "description",
+            description: {
+              type: connection.localDescription.type,
+              sdp: connection.localDescription.sdp
+            }
+          }
+        });
+        connectionStatus.textContent = "Exchanging peer connection details.";
+        return;
+      }
+      if (message.type === "peer-left") {
+        closePeerConnection();
+        connectionStatus.textContent = `The other client left room ${activeRoom}. Waiting for another client.`;
+        return;
+      }
+      if (message.type !== "signal" || !peerConnection || !message.data) {
+        throw new Error("The signaling server sent an unexpected message.");
+      }
+
+      const connection = peerConnection;
+      if (message.data.kind === "candidate") {
+        const candidate = message.data.candidate;
+        if (!candidate || typeof candidate.candidate !== "string") {
+          throw new Error("The other client sent an invalid connection candidate.");
+        }
+        if (connection.remoteDescription) {
+          await connection.addIceCandidate(candidate);
+        } else {
+          pendingIceCandidates.push(candidate);
+        }
+        return;
+      }
+
+      if (message.data.kind !== "description" || !message.data.description) {
+        throw new Error("The other client sent invalid connection details.");
+      }
+      const description = message.data.description;
+      await connection.setRemoteDescription(description);
+      await applyPendingIceCandidates(connection);
+      if (description.type === "offer") {
+        const answer = await connection.createAnswer();
+        await connection.setLocalDescription(answer);
+        sendSignal({
+          type: "signal",
+          data: {
+            kind: "description",
+            description: {
+              type: connection.localDescription.type,
+              sdp: connection.localDescription.sdp
+            }
+          }
+        });
+        connectionStatus.textContent = "Exchanging peer connection details.";
+      } else if (description.type === "answer") {
+        connectionStatus.textContent = "Peer connection details received.";
+      } else {
+        throw new Error("Received an unknown peer connection description.");
+      }
+    }
+
+    function startConnection(roomCode) {
+      if (!/^[A-Za-z0-9_-]{8,64}$/.test(roomCode)) {
+        connectionStatus.textContent = "Room codes must contain 8–64 letters, numbers, hyphens, or underscores.";
+        return;
+      }
+      if (!window.isSecureContext && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
+        connectionStatus.textContent = "Online connections require this page to be served over HTTPS.";
+        return;
+      }
+
+      let socket;
+      try {
+        socket = new WebSocket(`${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/signal`);
+      } catch (error) {
+        connectionStatus.textContent = `Could not open the signaling connection: ${error.message}`;
+        return;
+      }
+
+      signalSocket = socket;
+      activeRoom = roomCode;
+      lastSignalError = "";
+      setConnectionControls(true);
+      connectionStatus.textContent = "Connecting to the signaling server.";
+
+      socket.addEventListener("open", () => {
+        if (signalSocket === socket) {
+          socket.send(JSON.stringify({ type: "join", room: roomCode }));
+        }
+      });
+      socket.addEventListener("message", (event) => {
+        let message;
+        try {
+          message = JSON.parse(event.data);
+        } catch (error) {
+          lastSignalError = `Invalid response from the signaling server: ${error.message}`;
+          connectionStatus.textContent = lastSignalError;
+          socket.close();
+          return;
+        }
+        handleSignalMessage(message, socket).catch((error) => {
+          connectionStatus.textContent = `Connection setup failed: ${error.message}`;
+          console.error(error);
+        });
+      });
+      socket.addEventListener("error", () => {
+        lastSignalError = "Could not connect to the signaling server. Check the server address and HTTPS/WebSocket setup.";
+        connectionStatus.textContent = lastSignalError;
+      });
+      socket.addEventListener("close", () => {
+        if (signalSocket !== socket) {
+          return;
+        }
+        signalSocket = null;
+        activeRoom = null;
+        closePeerConnection();
+        setConnectionControls(false);
+        connectionStatus.textContent = lastSignalError || "Disconnected from the signaling server.";
+      });
+    }
+
+    function sendCurrentMessage() {
+      if (!dataChannel || dataChannel.readyState !== "open") {
+        inputStatus.textContent = "Not connected; the message remains here until you can send it.";
+        return;
+      }
+      const text = decodedText.textContent;
+      try {
+        dataChannel.send(text);
+      } catch (error) {
+        inputStatus.textContent = `Could not send the message: ${error.message}`;
+        return;
+      }
+      appendConversationMessage("You", text);
+      decodedText.textContent = "";
+      inputStatus.textContent = "Message sent. Waiting for arrow keys.";
+    }
+
+    createRoomButton.addEventListener("click", () => {
+      const bytes = crypto.getRandomValues(new Uint8Array(8));
+      const roomCode = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+      roomCodeInput.value = roomCode;
+      startConnection(roomCode);
+    });
+    joinRoomButton.addEventListener("click", () => {
+      startConnection(roomCodeInput.value.trim());
+    });
+    disconnectButton.addEventListener("click", () => {
+      const socket = signalSocket;
+      signalSocket = null;
+      activeRoom = null;
+      lastSignalError = "";
+      closePeerConnection();
+      setConnectionControls(false);
+      connectionStatus.textContent = "Disconnected.";
+      if (socket && socket.readyState < WebSocket.CLOSING) {
+        socket.close(1000);
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.target instanceof HTMLInputElement) {
+        return;
+      }
+      const direction = directions[event.key];
+      if (!direction) {
+        return;
+      }
+
+      event.preventDefault();
+      sequence.push(direction);
+      if (sequence.length < 3) {
+        inputStatus.textContent = `${shiftNextCharacter ? "Shift ready; " : ""}Input: ${sequence.join(" ")}`;
+        return;
+      }
+
+      const code = sequence.join(" ");
+      sequence.length = 0;
+      if (code === "right right up") {
+        shiftNextCharacter = true;
+        inputStatus.textContent = "Shift ready: the next letter will be uppercase.";
+        return;
+      }
+
+      if (code === "up up up") {
+        shiftNextCharacter = false;
+        sendCurrentMessage();
+        return;
+      }
+
+      const character = characters[code];
+      if (character !== undefined) {
+        const outputCharacter = shiftNextCharacter && /^[a-z]$/.test(character)
+          ? character.toUpperCase()
+          : character;
+        shiftNextCharacter = false;
+        decodedText.textContent += outputCharacter;
+        inputStatus.textContent = "Waiting for arrow keys.";
+      } else {
+        inputStatus.textContent = shiftNextCharacter
+          ? "Unrecognized sequence. Shift is still ready."
+          : "Unrecognized sequence.";
+      }
+    });
+  </script>
+</body>
+</html>

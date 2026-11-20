@@ -1,0 +1,48 @@
+charA = A L2 R0, B L0 R0
+charB = A L3 R0, B L0 R0
+charC = A L1 R1, B L0 R0
+char1 = A L1 R1, B L0 R0
+charD = A R1 L1, B L0 R0
+char2 = A R1 L1, B L0 R0
+charE = A R1 L0, B L0 R0
+char3 = A R1 L0, B L0 R0
+charF = A R2 L0, B L0 R0
+charG = A R3 L0, B L0 R0
+charH = A L0 R0, B R1 L0
+char4 = A L0 R0, B R1 L0
+charI = A L0 R0, B R2 L0
+charJ = ?
+charK = A L0 R0, B R3 L0
+charL = A L0 R0, B L1 R1
+char5 = A L0 R0, B L1 R1
+charM = A L0 R0, B R1 L1
+char6 = A L0 R0, B R1 L1
+charN = A L0 R0, B R1 L0
+char7 = A L0 R0, B R1 L0
+charO = A L0 R0, B R2 L0
+charP = A L0 R0, B R3 L0
+charQ = ?
+charR = A L1 R0
+		B L1 R0
+char8 = A L1 R0
+		B L1 R0
+charS = A L2 R0
+		B L2 R0
+charT = A L3 R0
+		B L3 R0
+charU = A R1 L1
+		B R1 L1
+char9 = A R1 L1
+		B R1 L1
+charV = A L1 R1
+		B L1 R1
+char0 = A L1 R1
+		B L1 R1
+charW = A L0 R1
+		B L0 R1
+charX = A L0 R2
+		B L0 R2
+charY = A L0 R3
+		B L0 R3
+charZ = ?
+char~ = A L1 R0, B L2 R0
