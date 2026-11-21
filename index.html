@@ -23,6 +23,13 @@
       margin-top: 0;
     }
 
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
     #message-workspace {
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(14rem, 0.8fr);
@@ -162,15 +169,18 @@
 </head>
 <body>
   <main>
-    <h1>Solomons-Borenstein Telegraph System</h1>
+    <header class="page-header">
+      <h1>Solomons-Borenstein Telegraph System</h1>
+      <button id="connection-toggle" type="button" aria-controls="connection-controls" aria-expanded="false">Connection</button>
+    </header>
     <p>Use the arrow keys. Every three key presses produce one letter, number, punctuation mark, or space. Press → → ↑ before a letter to capitalize it. Press ↑ ↑ ↑ to send the current message.</p>
 
-    <section id="connection-controls" aria-labelledby="connection-heading">
+    <section id="connection-controls" aria-labelledby="connection-heading" hidden>
       <h2 id="connection-heading">Connect two clients</h2>
       <p>Create a room in one browser and share its code with the other client.</p>
       <div class="connection-actions">
         <label for="room-code">Room code
-          <input id="room-code" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
+          <input id="room-code" type="text" maxlength="4" pattern="[A-Za-z0-9]{4}" autocomplete="off" autocapitalize="characters" spellcheck="false">
         </label>
         <button id="create-room" type="button">Create room</button>
         <button id="join-room" type="button">Join room</button>
@@ -313,6 +323,8 @@
     const decodedText = document.querySelector("#decoded-text");
     const sentMessages = document.querySelector("#sent-messages");
     const inputStatus = document.querySelector("#input-status");
+    const connectionToggle = document.querySelector("#connection-toggle");
+    const connectionControls = document.querySelector("#connection-controls");
     const roomCodeInput = document.querySelector("#room-code");
     const createRoomButton = document.querySelector("#create-room");
     const joinRoomButton = document.querySelector("#join-room");
@@ -532,8 +544,9 @@
     }
 
     function startConnection(roomCode) {
-      if (!/^[A-Za-z0-9_-]{8,64}$/.test(roomCode)) {
-        connectionStatus.textContent = "Room codes must contain 8–64 letters, numbers, hyphens, or underscores.";
+      roomCode = roomCode.toUpperCase();
+      if (!/^[A-Z0-9]{4}$/.test(roomCode)) {
+        connectionStatus.textContent = "Room codes must contain exactly 4 letters or numbers.";
         return;
       }
       if (!window.isSecureContext && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
@@ -608,9 +621,14 @@
       inputStatus.textContent = "Message sent. Waiting for arrow keys.";
     }
 
+    connectionToggle.addEventListener("click", () => {
+      connectionControls.hidden = !connectionControls.hidden;
+      connectionToggle.setAttribute("aria-expanded", String(!connectionControls.hidden));
+    });
     createRoomButton.addEventListener("click", () => {
-      const bytes = crypto.getRandomValues(new Uint8Array(8));
-      const roomCode = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+      const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      const bytes = crypto.getRandomValues(new Uint8Array(4));
+      const roomCode = Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
       roomCodeInput.value = roomCode;
       startConnection(roomCode);
     });
